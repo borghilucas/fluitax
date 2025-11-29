@@ -181,6 +181,10 @@ export default function ProductsPage() {
   const [compositions, setCompositions] = useState<ProductCompositionEntry[]>([]);
   const [compositionsLoading, setCompositionsLoading] = useState(false);
   const [compositionError, setCompositionError] = useState<string | null>(null);
+  const [editingComposition, setEditingComposition] = useState<ProductCompositionEntry | null>(null);
+  const [editRawId, setEditRawId] = useState('');
+  const [editFinishedId, setEditFinishedId] = useState('');
+  const [editRatio, setEditRatio] = useState('');
 
   const [catalogFilters, setCatalogFilters] = useState<{ search: string; unit: string; mapped: 'ALL' | 'MAPPED' | 'UNMAPPED' }>({
     search: '',
@@ -688,10 +692,60 @@ export default function ProductsPage() {
         body: JSON.stringify({ rawProductId: raw, finishedProductId: finished, ratio }),
       });
       await loadCompositions(selectedCompanyId);
+      setEditingComposition(null);
+      setEditRawId('');
+      setEditFinishedId('');
+      setEditRatio('');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Falha ao criar composição.';
       setCompositionError(message);
     }
+  };
+
+  const handleEditComposition = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedCompanyId || !editingComposition) return;
+    const payload = {
+      rawProductId: editRawId || editingComposition.rawProductId,
+      finishedProductId: editFinishedId || editingComposition.finishedProductId,
+      ratio: sanitizeDecimal(editRatio || editingComposition.ratio || ''),
+    };
+    if (!payload.rawProductId || !payload.finishedProductId || payload.rawProductId === payload.finishedProductId || !payload.ratio) {
+      setCompositionError('Preencha matéria-prima, produto acabado diferentes e uma relação válida.');
+      return;
+    }
+    try {
+      await fetchJson(`/products/${selectedCompanyId}/compositions/${editingComposition.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      setEditingComposition(null);
+      setEditRawId('');
+      setEditFinishedId('');
+      setEditRatio('');
+      setCompositionError(null);
+      await loadCompositions(selectedCompanyId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao atualizar composição.';
+      setCompositionError(message);
+    }
+  };
+
+  const startEditComposition = (composition: ProductCompositionEntry) => {
+    setEditingComposition(composition);
+    setEditRawId(composition.rawProductId);
+    setEditFinishedId(composition.finishedProductId);
+    setEditRatio(composition.ratio.toString());
+    setCompositionError(null);
+  };
+
+  const cancelEditComposition = () => {
+    setEditingComposition(null);
+    setEditRawId('');
+    setEditFinishedId('');
+    setEditRatio('');
+    setCompositionError(null);
   };
 
   const topMetrics = [
@@ -1245,6 +1299,7 @@ export default function ProductsPage() {
                   <th className="px-3 py-2">Matéria-prima</th>
                   <th className="px-3 py-2">Produto acabado</th>
                   <th className="px-3 py-2">Relação</th>
+                  <th className="px-3 py-2 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border-subtle)]">
@@ -1261,6 +1316,15 @@ export default function ProductsPage() {
                     <td className="px-3 py-3 text-sm text-[var(--color-text-secondary)]">
                       {Number(composition.ratio).toLocaleString('pt-BR', { maximumFractionDigits: 6 })}
                     </td>
+                    <td className="px-3 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => startEditComposition(composition)}
+                        className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border-subtle)] px-2 py-1 text-xs font-semibold text-[var(--color-text-primary)] hover:border-[var(--color-brand-accent)] hover:text-[var(--color-brand-primary)] focus-visible:outline-focus-visible"
+                      >
+                        Editar
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1271,14 +1335,24 @@ export default function ProductsPage() {
 
       <div className="border-t border-[var(--color-border-subtle)] pt-6 space-y-5 w-full md:max-w-3xl md:ml-auto md:px-6 px-3">
         <header className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-text-secondary)]">Nova composição</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-text-secondary)]">
+            {editingComposition ? 'Editar composição' : 'Nova composição'}
+          </p>
           <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Relacionar produtos</h3>
           <p className="text-sm text-[var(--color-text-secondary)]">Defina matéria-prima, produto acabado e a proporção.</p>
         </header>
-        <form className="mt-4 space-y-3" onSubmit={handleCreateComposition}>
+        <form
+          className="mt-4 space-y-3"
+          onSubmit={editingComposition ? handleEditComposition : handleCreateComposition}
+        >
           <label className="grid gap-1 text-sm text-[var(--color-text-primary)]">
             <span className="font-medium">Matéria-prima</span>
-            <select name="raw" className="h-10 w-full rounded-md border border-[var(--color-border-subtle)] bg-white px-3 text-sm shadow-sm">
+            <select
+              name="raw"
+              value={editingComposition ? editRawId : editRawId}
+              onChange={(event) => setEditRawId(event.target.value)}
+              className="h-10 w-full rounded-md border border-[var(--color-border-subtle)] bg-white px-3 text-sm shadow-sm"
+            >
               <option value="">Selecione</option>
               {products.map((product) => (
                 <option key={product.id} value={product.id}>
@@ -1289,7 +1363,12 @@ export default function ProductsPage() {
           </label>
           <label className="grid gap-1 text-sm text-[var(--color-text-primary)]">
             <span className="font-medium">Produto acabado</span>
-            <select name="finished" className="h-10 w-full rounded-md border border-[var(--color-border-subtle)] bg-white px-3 text-sm shadow-sm">
+            <select
+              name="finished"
+              value={editingComposition ? editFinishedId : editFinishedId}
+              onChange={(event) => setEditFinishedId(event.target.value)}
+              className="h-10 w-full rounded-md border border-[var(--color-border-subtle)] bg-white px-3 text-sm shadow-sm"
+            >
               <option value="">Selecione</option>
               {products.map((product) => (
                 <option key={product.id} value={product.id}>
@@ -1303,6 +1382,8 @@ export default function ProductsPage() {
             <input
               name="ratio"
               placeholder="Ex.: 0,45"
+              value={editingComposition ? editRatio : editRatio}
+              onChange={(event) => setEditRatio(event.target.value)}
               className="h-10 w-full rounded-md border border-[var(--color-border-subtle)] bg-white px-3 text-sm shadow-sm"
             />
           </label>
@@ -1310,8 +1391,17 @@ export default function ProductsPage() {
             type="submit"
             className="inline-flex items-center gap-2 rounded-md bg-[var(--color-brand-primary)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--color-brand-primary-strong)] focus-visible:outline-focus-visible"
           >
-            Adicionar
+            {editingComposition ? 'Salvar' : 'Adicionar'}
           </button>
+          {editingComposition ? (
+            <button
+              type="button"
+              onClick={cancelEditComposition}
+              className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border-subtle)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] hover:border-[var(--color-brand-accent)] hover:text-[var(--color-brand-primary)] focus-visible:outline-focus-visible"
+            >
+              Cancelar edição
+            </button>
+          ) : null}
         </form>
       </div>
     </div>
