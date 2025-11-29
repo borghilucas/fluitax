@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fluitax
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/fluitax?schema=public
+      PORT: 4002
+      CORS_ORIGIN: http://localhost:3000
+      MULTI_COMPANY_ACCESS_KEY: "false"
+      UPLOAD_DECISION_LOGS: "false"
+      CFOP_REPROCESS_ENABLE: "true"
+      SEPARATE_CFOP_BY_DESCRIPTION: "false"
+    ports:
+      - "4002:4002"
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_HOST: http://api:4002
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_HOST: http://api:4002
+      PORT: 3000
+      HOST: 0.0.0.0
+    ports:
+      - "3000:3000"
+
+volumes:
+  db-data:

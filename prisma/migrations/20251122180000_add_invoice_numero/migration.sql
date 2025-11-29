@@ -1,0 +1,1 @@
+ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "numero" TEXT;

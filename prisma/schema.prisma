@@ -1,0 +1,499 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InvoiceType {
+  IN
+  OUT
+}
+
+enum ProductType {
+  RAW
+  FINISHED
+}
+
+enum StockMovementDirection {
+  IN
+  OUT
+}
+
+enum StockMovementSource {
+  XML_IN
+  XML_OUT
+  ADJUSTMENT
+  PRODUCTION_CONSUMPTION
+  PRODUCTION_OUTPUT
+  INVENTORY_OPENING
+}
+
+model Company {
+  id        String    @id @default(cuid())
+  name      String
+  cnpj      String    @unique
+  partners  Partner[]
+  invoices  Invoice[]
+  invoiceCancellations InvoiceCancellation[]
+  cfopRules CfopRule[]
+  naturezasOperacao NaturezaOperacao[]
+  naturezaOperacaoAliases NaturezaOperacaoAlias[]
+  reportConfigurations ReportConfiguration[]
+  products  Product[]
+  productCompositions ProductComposition[]
+  productAliases ProductAlias[]
+  stockMovements StockMovement[]
+  uploadBatches UploadBatch[]
+  ctes      Cte[]
+  reprocessBatches ReprocessBatch[]
+  inventoryOpenings InventoryOpening[]
+  costSnapshots CostSnapshot[]
+  unitConversions ProductUnitConversion[]
+  invoiceItemMappingRules InvoiceItemMappingRule[]
+  dreDeductions DREDeduction[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Partner {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  cnpjCpf   String
+  name      String
+
+  @@index([companyId, cnpjCpf])
+}
+
+model Cfop {
+  code  String        @id
+  items InvoiceItem[]
+  rules CfopRule[]
+}
+
+model Invoice {
+  id                  String        @id @default(cuid())
+  companyId           String
+  company             Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  chave               String
+  numero              String?
+  emissao             DateTime
+  entradaSaida        DateTime?
+  type                InvoiceType
+  issuerCnpj          String
+  recipientCnpj       String
+  recipientName       String?
+  recipientCity       String?
+  recipientState      String?
+  isSelfIssuedEntrada Boolean       @default(false)
+  cfop                String?
+  naturezaOperacaoId  String?
+  naturezaOperacao    NaturezaOperacao? @relation(fields: [naturezaOperacaoId], references: [id], onDelete: SetNull)
+  natOp               String?
+  totalNFe            Decimal
+  items               InvoiceItem[]
+  stockMovements      StockMovement[]
+  uploadBatchId       String?
+  uploadBatch         UploadBatch?  @relation(fields: [uploadBatchId], references: [id], onDelete: SetNull)
+  sourceFileName      String?
+  globalInvoiceKey    String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([companyId, emissao])
+  @@index([companyId, type, emissao])
+  @@unique([companyId, chave])
+}
+
+model Cte {
+  id             String   @id @default(cuid())
+  companyId      String
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  chave          String
+  modelo         String?
+  serie          String?
+  numero         String?
+  emissao        DateTime
+  cfop           String?
+  natOp          String?
+  emitCnpj       String?
+  emitNome       String?
+  emitUf         String?
+  emitMun        String?
+  destCnpj       String?
+  destNome       String?
+  destUf         String?
+  destMun        String?
+  valorPrestacao Decimal
+  valorReceber   Decimal?
+  pesoBruto      Decimal?
+  unidadePeso    String?
+  protocolo      String?
+  protocoloMsg   String?
+  protocoloStatus String?
+  isCancelled    Boolean  @default(false)
+  uploadBatchId  String?
+  uploadBatch    UploadBatch? @relation(fields: [uploadBatchId], references: [id], onDelete: SetNull)
+  sourceFileName String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([companyId, chave])
+  @@index([companyId, emissao])
+}
+
+model NaturezaOperacao {
+  id                  String       @id @default(cuid())
+  companyId           String
+  company             Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  natOp               String
+  descricao           String
+  cfopCode            String
+  cfopType            InvoiceType
+  isSelfIssuedEntrada Boolean      @default(false)
+  includeInReports    Boolean      @default(true)
+  dreInclude          Boolean      @default(false)
+  dreCategory         String?
+  dreLabel            String?
+  invoices            Invoice[]
+  aliases             NaturezaOperacaoAlias[]
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@unique([companyId, cfopCode, natOp, cfopType, isSelfIssuedEntrada], map: "NaturezaOperacao_unique_key")
+  @@index([companyId, descricao])
+}
+
+model DREDeduction {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title     String
+  startDate DateTime
+  endDate   DateTime
+  amount    Decimal
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([startDate, endDate])
+}
+
+model NaturezaOperacaoAlias {
+  id                        String            @id @default(cuid())
+  companyId                 String
+  company                   Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  natOp                     String
+  cfopCode                  String
+  cfopType                  InvoiceType
+  isSelfIssuedEntrada       Boolean           @default(false)
+  targetNaturezaOperacaoId  String
+  targetNaturezaOperacao    NaturezaOperacao  @relation(fields: [targetNaturezaOperacaoId], references: [id], onDelete: Cascade)
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+
+  @@unique([companyId, cfopCode, natOp, cfopType, isSelfIssuedEntrada], map: "NaturezaOperacaoAlias_unique_key")
+  @@index([companyId, natOp])
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  cfopCode    String
+  cfop        Cfop     @relation(fields: [cfopCode], references: [code])
+  cfopDescription String?
+  cfopComposite   String?
+  ncm         String?
+  cst         String?
+  csosn       String?
+  productCode String?
+  description String?
+  unit        String?
+  qty         Decimal
+  unitPrice   Decimal
+  gross       Decimal
+  discount    Decimal
+  icmsValue   Decimal?
+  ipiValue    Decimal?
+  pisValue    Decimal?
+  cofinsValue Decimal?
+  vBC         Decimal?
+  vICMS       Decimal?
+  vICMSDeson  Decimal?
+  vBCST       Decimal?
+  vST         Decimal?
+  vTotTrib    Decimal?
+  productMapping InvoiceItemProductMapping?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([cfopCode])
+  @@index([cfopComposite])
+}
+
+model Product {
+  id             String           @id @default(cuid())
+  companyId      String
+  company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sku            String?
+  name           String
+  description    String?
+  type           ProductType      @default(RAW)
+  unit           String?
+  packSizeKg     Decimal?
+  rawScPerUnit   Decimal?
+  brand          String?
+  line           String?
+  category       String?
+  ncm            String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  itemMappings   InvoiceItemProductMapping[]
+  asRawComponent ProductComposition[]     @relation("RawProductComposition")
+  asFinishedComponent ProductComposition[] @relation("FinishedProductComposition")
+  aliases        ProductAlias[]
+  stockMovements StockMovement[]
+  inventoryOpenings InventoryOpening[]
+  unitConversions ProductUnitConversion[]
+  mappingRules InvoiceItemMappingRule[]
+
+  @@index([companyId, sku])
+  @@unique([companyId, name])
+  @@unique([companyId, sku])
+}
+
+model InvoiceItemProductMapping {
+  id            String      @id @default(cuid())
+  invoiceItemId String      @unique
+  invoiceItem   InvoiceItem @relation(fields: [invoiceItemId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  notes         String?
+  convertedQty  Decimal?
+  conversionFactor Decimal?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model ProductAlias {
+  id        String   @id @default(cuid())
+  companyId String
+  alias     String
+  productId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, alias])
+  @@index([productId])
+}
+
+model InventoryOpening {
+  id           String   @id @default(cuid())
+  companyId    String
+  productId    String
+  date         DateTime
+  qtyNative    Decimal?
+  scEquivalent Decimal
+  totalValue   Decimal
+  unitCost     Decimal?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, productId])
+  @@index([companyId, date])
+}
+
+model ProductUnitConversion {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  productId  String?
+  product    Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sourceUnit String
+  targetUnit String
+  multiplier Decimal
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([companyId, productId, sourceUnit, targetUnit], map: "ProductUnitConversion_unique_key")
+  @@index([companyId, sourceUnit, targetUnit])
+}
+
+model InvoiceItemMappingRule {
+  id                    String   @id @default(cuid())
+  companyId             String
+  company               Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  productId             String
+  product               Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  descriptionKey        String
+  descriptionRaw        String
+  unitKey               String
+  unitRaw               String?
+  conversionMultiplier  Decimal?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([companyId, descriptionKey, unitKey], map: "InvoiceItemMappingRule_unique_key")
+  @@index([companyId, productId])
+}
+
+model UploadBatch {
+  id        String   @id @default(cuid())
+  companyId String
+  fileName  String?
+  actorId   String?
+  summary   Json?
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+  cancellations InvoiceCancellation[]
+  ctes     Cte[]
+
+  @@index([companyId, createdAt])
+}
+
+model InvoiceCancellation {
+  id             String   @id @default(cuid())
+  companyId      String
+  chave          String
+  eventType      String?
+  eventSequence  Int?
+  statusCode     String?
+  statusMessage  String?
+  protocolNumber String?
+  eventTimestamp DateTime?
+  receivedAt     DateTime?
+  justification  String?
+  sourceFileName String?
+  uploadBatchId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  uploadBatch UploadBatch? @relation(fields: [uploadBatchId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, chave])
+  @@index([companyId, eventTimestamp])
+}
+
+model ReprocessBatch {
+  id        String   @id @default(cuid())
+  companyId String
+  mode      String
+  status    String
+  params    Json?
+  summary   Json?
+  warnings  Json?
+  actorId   String?
+  createdAt DateTime @default(now())
+  startedAt DateTime?
+  finishedAt DateTime?
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+}
+
+model StockMovement {
+  id           String                 @id @default(cuid())
+  companyId    String
+  date         DateTime
+  productId    String
+  direction    StockMovementDirection
+  qty          Decimal
+  unitPrice    Decimal?
+  totalValue   Decimal
+  source       StockMovementSource
+  invoiceId    String?
+  counterparty String?
+  cfop         String?
+  createdAt    DateTime              @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  invoice Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, date])
+  @@index([companyId, productId, date])
+  @@index([companyId, source])
+}
+
+model CostSnapshot {
+  id                    String   @id @default(cuid())
+  date                  DateTime
+  companyId             String
+  rawCoffeeAvgCostPerSc Decimal
+  stockSc               Decimal
+  stockValue            Decimal
+  createdAt             DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, date])
+  @@index([companyId, date])
+}
+
+model ProductComposition {
+  id                String   @id @default(cuid())
+  companyId         String
+  rawProductId      String
+  finishedProductId String
+  ratio             Decimal
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  company           Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  rawProduct        Product @relation("RawProductComposition", fields: [rawProductId], references: [id], onDelete: Cascade)
+  finishedProduct   Product @relation("FinishedProductComposition", fields: [finishedProductId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, rawProductId, finishedProductId])
+  @@index([companyId, rawProductId])
+  @@index([companyId, finishedProductId])
+}
+
+model CfopRule {
+  id           String   @id @default(cuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  cfopCode     String
+  cfop         Cfop     @relation(fields: [cfopCode], references: [code], onDelete: Cascade)
+  type         InvoiceType @default(OUT)
+  description  String?
+  icmsRate     Decimal?
+  ipiRate      Decimal?
+  pisRate      Decimal?
+  cofinsRate   Decimal?
+  funruralRate Decimal?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([companyId, cfopCode, type])
+}
+
+model ReportConfiguration {
+  id                String   @id @default(cuid())
+  companyId         String
+  reportId          String
+  excludedCfops     String[] @default([])
+  excludedCustomers String[] @default([])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, reportId])
+}

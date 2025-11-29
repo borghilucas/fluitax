@@ -1,0 +1,79 @@
+[
+  {
+    "id": "kardex",
+    "name": "Kardex",
+    "description": "Fluxo cronológico de entradas e saídas com saldo acumulado.",
+    "category": "Estoque",
+    "capabilities": ["cfopSelection", "customerExclusion"]
+  },
+  {
+    "id": "cmv",
+    "name": "CMV",
+    "description": "Custo médio ponderado por produto, categoria ou cliente.",
+    "category": "Rentabilidade",
+    "capabilities": ["cfopSelection", "customerExclusion"]
+  },
+  {
+    "id": "margins",
+    "name": "Margem Bruta",
+    "description": "Receita, CMV e margens agregadas por dimensão.",
+    "category": "Rentabilidade",
+    "capabilities": ["cfopSelection", "customerExclusion"]
+  },
+  {
+    "id": "stock-position",
+    "name": "Posição Financeira",
+    "description": "Evolução diária do estoque físico e financeiro.",
+    "category": "Estoque",
+    "capabilities": ["cfopSelection", "customerExclusion"]
+  },
+  {
+    "id": "price-compare",
+    "name": "Preço x Custo",
+    "description": "Comparativo entre preço médio praticado e custo da saca.",
+    "category": "Rentabilidade",
+    "capabilities": ["cfopSelection", "customerExclusion"]
+  },
+  {
+    "id": "customers",
+    "name": "Clientes",
+    "description": "Ranking de clientes por receita, margem e volume.",
+    "category": "Mercado",
+    "capabilities": ["cfopSelection", "customerExclusion"]
+  },
+  {
+    "id": "suppliers",
+    "name": "Fornecedores",
+    "description": "Ranking de fornecedores por volume, preço e participação.",
+    "category": "Mercado",
+    "capabilities": ["cfopSelection", "customerExclusion"]
+  },
+  {
+    "id": "products",
+    "name": "Rentabilidade SKUs",
+    "description": "Margem e volume por SKU acabado.",
+    "category": "Rentabilidade",
+    "capabilities": ["cfopSelection", "customerExclusion"]
+  },
+  {
+    "id": "simulations",
+    "name": "Simulações",
+    "description": "Defina metas de margem ou reajustes de preço por SKU.",
+    "category": "Rentabilidade",
+    "capabilities": ["cfopSelection", "customerExclusion"]
+  },
+  {
+    "id": "coverage",
+    "name": "Cobertura de Estoque",
+    "description": "Dias de cobertura considerando consumo médio recente.",
+    "category": "Estoque",
+    "capabilities": ["cfopSelection", "customerExclusion"]
+  },
+  {
+    "id": "unconditional-discounts",
+    "name": "Descontos Incondicionais",
+    "description": "Notas de venda com descontos permanentes por cliente para base contábil.",
+    "category": "Fiscal",
+    "capabilities": []
+  }
+]

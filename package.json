@@ -1,0 +1,33 @@
+{
+  "name": "fluitax",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "seed": "node scripts/seed.js",
+    "reset:data": "node scripts/resetInvoices.js",
+    "test": "node --test",
+    "prisma:db-push": "prisma db push",
+    "prisma:migrate-dev": "prisma migrate dev",
+    "prisma:generate": "prisma generate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^6.16.2",
+    "adm-zip": "^0.5.16",
+    "cfop": "^1.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "fast-xml-parser": "^5.2.5",
+    "multer": "^2.0.2",
+    "pdfkit": "^0.17.2",
+    "puppeteer": "^23.7.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.16.2"
+  }
+}
