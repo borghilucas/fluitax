@@ -49,6 +49,7 @@ export default function FiscalClosePage() {
   const { selectedCompanyId, selectedCompany } = useCompanyContext();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [fiscalYear, setFiscalYear] = useState<string>(new Date().getFullYear().toString());
   const [naturezas, setNaturezas] = useState<Array<{ id: string; label: string }>>([]);
   const [selectedNaturezas, setSelectedNaturezas] = useState<string[]>([]);
   const [data, setData] = useState<Response | null>(null);
@@ -103,6 +104,15 @@ export default function FiscalClosePage() {
     if (value == null) return '';
     // converte para formato PT-BR com vírgula para facilitar colagem no Excel
     return value.toFixed(2).replace('.', ',');
+  };
+
+  const setQuarter = (q: 1 | 2 | 3 | 4) => {
+    const yearNum = Number(fiscalYear) || new Date().getFullYear();
+    const startMonth = (q - 1) * 3;
+    const start = new Date(Date.UTC(yearNum, startMonth, 1));
+    const end = new Date(Date.UTC(yearNum, startMonth + 3, 0));
+    setFrom(start.toISOString().slice(0, 10));
+    setTo(end.toISOString().slice(0, 10));
   };
 
   const copyRows = async (title: string, rows: Row[]) => {
@@ -320,6 +330,30 @@ export default function FiscalClosePage() {
             className="h-9 rounded-md border border-[var(--color-border-subtle)] bg-white px-2 text-sm shadow-sm"
           />
         </label>
+        <label className="grid gap-1 text-xs text-[var(--color-text-primary)]">
+          <span className="font-semibold">Ano (trimestre)</span>
+          <input
+            type="number"
+            min="2000"
+            max="2100"
+            value={fiscalYear}
+            onChange={(event) => setFiscalYear(event.target.value)}
+            className="h-9 w-24 rounded-md border border-[var(--color-border-subtle)] bg-white px-2 text-sm shadow-sm"
+          />
+        </label>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-primary)]">
+          <span className="font-semibold">Atalhos de trimestre:</span>
+          {[1, 2, 3, 4].map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => setQuarter(q as 1 | 2 | 3 | 4)}
+              className="rounded-md border border-[var(--color-border-subtle)] bg-white px-3 py-2 font-semibold hover:border-[var(--color-brand-accent)] hover:text-[var(--color-brand-primary)]"
+            >
+              T{q}/{fiscalYear}
+            </button>
+          ))}
+        </div>
         {naturezas.length ? (
           <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-primary)]">
             <span className="font-semibold">Naturezas:</span>

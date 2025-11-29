@@ -858,11 +858,56 @@ async function buildDreReport(companyId, from, to) {
     };
   });
 
+  // Consumo teórico por composição (produto acabado -> matéria-prima)
+  const compositions = await prisma.productComposition.findMany({
+    where: { companyId },
+    select: {
+      rawProductId: true,
+      finishedProductId: true,
+      ratio: true,
+      rawProduct: { select: { id: true, name: true, sku: true } },
+    },
+  });
+
+  const compositionsByFinished = new Map();
+  compositions.forEach((c) => {
+    if (!c.finishedProductId || !c.rawProductId) return;
+    if (!compositionsByFinished.has(c.finishedProductId)) {
+      compositionsByFinished.set(c.finishedProductId, []);
+    }
+    compositionsByFinished.get(c.finishedProductId).push(c);
+  });
+
+  const compositionItems = [];
+  Object.entries(revenueQtyByProduct).forEach(([finishedId, qtySold]) => {
+    const qtyReturned = returnQtyByProduct[finishedId] || 0;
+    const netQty = Math.max(qtySold - qtyReturned, 0);
+    if (!netQty) return;
+    const comps = compositionsByFinished.get(finishedId);
+    if (!comps || !comps.length) return;
+    comps.forEach((comp) => {
+      const consumedQty = netQty * Number(comp.ratio || 0);
+      if (!consumedQty) return;
+      const costInfo = cmvByProduct[comp.rawProductId] || null;
+      const unitCost = costInfo && costInfo.qty > 0 ? costInfo.total / costInfo.qty : 0;
+      compositionItems.push({
+        label: 'CMV composição',
+        productKey: comp.rawProductId,
+        product: comp.rawProduct?.name || comp.rawProductId,
+        sku: comp.rawProduct?.sku || null,
+        qty: consumedQty,
+        total: consumedQty * unitCost,
+        avgPrice: unitCost,
+      });
+    });
+  });
+
+  const combinedCmvItems = [...cmvAdjustedItems, ...compositionItems];
   const cmvAdjustedGroup = [
     {
       label: 'CMV ajustado',
-      total: cmvAdjustedItems.reduce((sum, i) => sum + i.total, 0),
-      items: cmvAdjustedItems.map((i) => ({
+      total: combinedCmvItems.reduce((sum, i) => sum + i.total, 0),
+      items: combinedCmvItems.map((i) => ({
         product: i.product,
         sku: i.sku,
         qty: i.qty,
