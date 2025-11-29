@@ -16,7 +16,6 @@ type Row = {
   qty: number;
   total: number;
   vTotTrib: number | null;
-  vBC: number | null;
   vICMS: number | null;
   vICMSDeson: number | null;
   vBCST: number | null;
@@ -39,7 +38,6 @@ type TotaisProduto = {
   qty: number;
   total: number;
   vTotTrib: number;
-  vBC: number;
   vICMS: number;
   vICMSDeson: number;
   vBCST: number;
@@ -117,7 +115,6 @@ export default function FiscalClosePage() {
       'Qtd',
       'Total',
       'vTotTrib',
-      'vBC',
       'vICMS',
       'vICMSDeson',
       'vBCST',
@@ -132,7 +129,6 @@ export default function FiscalClosePage() {
       toExcelNumber(row.qty),
       toExcelNumber(row.total),
       toExcelNumber(row.vTotTrib ?? null),
-      toExcelNumber(row.vBC ?? null),
       toExcelNumber(row.vICMS ?? null),
       toExcelNumber(row.vICMSDeson ?? null),
       toExcelNumber(row.vBCST ?? null),
@@ -148,14 +144,13 @@ export default function FiscalClosePage() {
   const copyTotals = async (title: string, totals: Record<string, TotaisProduto>) => {
     const list = Object.values(totals || {});
     if (!list.length) return;
-    const header = ['Produto', 'SKU', 'Qtd', 'Total', 'vTotTrib', 'vBC', 'vICMS', 'vICMSDeson', 'vBCST', 'vST', 'vDesc'];
+    const header = ['Produto', 'SKU', 'Qtd', 'Total', 'vTotTrib', 'vICMS', 'vICMSDeson', 'vBCST', 'vST', 'vDesc'];
     const lines = list.map((row) => [
       row.product,
       row.sku ?? '',
       toExcelNumber(row.qty),
       toExcelNumber(row.total),
       toExcelNumber(row.vTotTrib ?? null),
-      toExcelNumber(row.vBC ?? null),
       toExcelNumber(row.vICMS ?? null),
       toExcelNumber(row.vICMSDeson ?? null),
       toExcelNumber(row.vBCST ?? null),
@@ -182,7 +177,6 @@ export default function FiscalClosePage() {
                 <th className="px-2 py-2 text-right">Qtd</th>
                 <th className="px-2 py-2 text-right">Total</th>
                 <th className="px-2 py-2 text-right">vTotTrib</th>
-                <th className="px-2 py-2 text-right">vBC</th>
                 <th className="px-2 py-2 text-right">vICMS</th>
                 <th className="px-2 py-2 text-right">vICMSDeson</th>
                 <th className="px-2 py-2 text-right">vBCST</th>
@@ -200,7 +194,6 @@ export default function FiscalClosePage() {
                   <td className="px-2 py-2 text-right font-mono">{formatNumber(row.qty)}</td>
                   <td className="px-2 py-2 text-right">{formatCurrency(row.total) ?? 'R$ --'}</td>
                   <td className="px-2 py-2 text-right">{formatCurrency(row.vTotTrib) ?? 'R$ --'}</td>
-                  <td className="px-2 py-2 text-right">{row.vBC != null ? formatCurrency(row.vBC) : '—'}</td>
                   <td className="px-2 py-2 text-right">{row.vICMS != null ? formatCurrency(row.vICMS) : '—'}</td>
                   <td className="px-2 py-2 text-right">{row.vICMSDeson != null ? formatCurrency(row.vICMSDeson) : '—'}</td>
                   <td className="px-2 py-2 text-right">{row.vBCST != null ? formatCurrency(row.vBCST) : '—'}</td>
@@ -261,7 +254,6 @@ export default function FiscalClosePage() {
                 <th className="px-2 py-2 text-right">Qtd</th>
                 <th className="px-2 py-2 text-right">Total</th>
                 <th className="px-2 py-2 text-right">vTotTrib</th>
-                <th className="px-2 py-2 text-right">vBC</th>
                 <th className="px-2 py-2 text-right">vICMS</th>
                 <th className="px-2 py-2 text-right">vICMSDeson</th>
                 <th className="px-2 py-2 text-right">vBCST</th>
@@ -281,7 +273,6 @@ export default function FiscalClosePage() {
                   <td className="px-2 py-2 text-right font-mono text-[var(--color-text-primary)]">{formatNumber(row.qty)}</td>
                   <td className="px-2 py-2 text-right text-[var(--color-text-primary)]">{formatCurrency(row.total) ?? 'R$ --'}</td>
                   <td className="px-2 py-2 text-right text-[var(--color-text-secondary)]">{row.vTotTrib != null ? formatCurrency(row.vTotTrib) : '—'}</td>
-                  <td className="px-2 py-2 text-right text-[var(--color-text-secondary)]">{row.vBC != null ? formatCurrency(row.vBC) : '—'}</td>
                   <td className="px-2 py-2 text-right text-[var(--color-text-secondary)]">{row.vICMS != null ? formatCurrency(row.vICMS) : '—'}</td>
                   <td className="px-2 py-2 text-right text-[var(--color-text-secondary)]">{row.vICMSDeson != null ? formatCurrency(row.vICMSDeson) : '—'}</td>
                   <td className="px-2 py-2 text-right text-[var(--color-text-secondary)]">{row.vBCST != null ? formatCurrency(row.vBCST) : '—'}</td>
