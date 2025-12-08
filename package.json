@@ -25,7 +25,7 @@
     "fast-xml-parser": "^5.2.5",
     "multer": "^2.0.2",
     "pdfkit": "^0.17.2",
-    "puppeteer": "^23.7.0"
+    "puppeteer": "^24.32.1"
   },
   "devDependencies": {
     "prisma": "^6.16.2"
